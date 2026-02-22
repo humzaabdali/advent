@@ -16,18 +16,22 @@ module top_module ();
 		#50 $finish;            // Quit the simulation
 	end
 
-	day1_puzzle1 inst1 ( .in(in) );   // Sub-modules work too.
+	template inst1 ( .in(in) );   // Sub-modules work too.
 
 endmodule
 
-module day1_puzzle1(input in, output out);
-    assign out = ~in;
-
-
+module template(input in, output out);
     // Probes for all module ports
     `probe(in);
     `probe(out);
+	
+	// Member variables for module
 
-    // Probes for select internal registers
+	// Probes for select internal registers
+
+	// Instantiations of submodules
+
+	// Procedural code
+	assign out = ~in;
 
 endmodule
