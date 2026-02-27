@@ -36,18 +36,12 @@ module day01_puzzle1(   input bit clk,
 	// Member variables for module
 
     wire valid0, last0, valid1, last1;
-    wire [31:0] sum0, round1;
+    wire [31:0] sum0, round1, xcount, i_xcount;
 
     ALU ALU1(.clk(clk), .rst(rst), .i_direction(direction), .i_num(num), .i_valid(valid), .i_last(last), .o_sum(sum0), .o_valid(valid0), .o_last(last0));
-    rounder Rounder1(.i_num(sum0), .i_valid(valid0), .i_last(last0), .o_rounded_value(round1), .o_valid(valid1), .o_last(last1));
-    zero_counter ZeroCounter1(.clk(clk), .rst(rst), .i_num(round1), .i_valid(valid1), .i_last(last1), .o_count(count), .o_valid(o_valid));
+    rounder Rounder1(.i_num(sum0), .i_valid(valid0), .i_last(last0), .o_rounded_value(round1), .o_valid(valid1), .o_last(last1), .o_xcount(xcount));
+    zero_counter ZeroCounter1(.clk(clk), .rst(rst), .i_num(round1), .i_valid(valid1), .i_last(last1), .o_count(count), .o_valid(o_valid), .i_xcount(xcount));
 
-	// Probes for select internal registers
-
-	// Instantiations of submodules
-
-	// Procedural code
-	
 endmodule
 
 module ALU( input bit clk,
@@ -60,14 +54,9 @@ module ALU( input bit clk,
             output bit o_valid,
             output bit o_last 
             );
-    // Probes for all module ports
 	
 	// Member variables for module
     bit [31:0] accum;
-
-	// Probes for select internal registers
-
-	// Instantiations of submodules
 
 	// Procedural code
     always_ff @(posedge clk) begin
@@ -90,8 +79,6 @@ module ALU( input bit clk,
     assign o_sum = accum;
 endmodule
 
-//handle over/underflow (going below 0 or above 99)
-
 module rounder(
     input  logic signed [31:0] i_num,
     input  logic               i_valid,
@@ -99,12 +86,20 @@ module rounder(
     output logic [31:0]        o_rounded_value,
     output logic               o_valid,
     output logic               o_last
+    output logic               o_xcount
 );
 
     always_comb begin
         // wrap to range [0,99]
         o_rounded_value = ((i_num % 100) + 100) % 100;
+        o_xcount = i_num / 100;
     end
+
+    //modular arithmetic 
+    //we are keeping track of how many times we wrap around zero, and adding it to the count
+    always@(posedge clk) begin 
+        
+    end 
 
     assign o_valid = i_valid;
     assign o_last  = i_last;
@@ -116,18 +111,11 @@ module zero_counter(    input bit [31:0] i_num,
                         input bit rst, 
                         input bit i_valid,
                         input bit i_last,
+                        input bit i_xcount,
                         output bit [31:0] o_count,
-                        output bit o_valid
+                        output bit o_valid,
+                        input bit i_xcount
                         );
-    // Probes for all module ports
-	
-	// Member variables for module
-
-	// Probes for select internal registers
-
-	// Instantiations of submodules
-
-	// Procedural code
 
     always@(posedge clk) begin 
         if (rst) begin 
@@ -136,16 +124,22 @@ module zero_counter(    input bit [31:0] i_num,
         end 
         else begin 
             if (i_valid) begin 
-                if (i_num==0) begin  
+                if (i_num==0 && (xcount == 0)) begin  
                     o_count <= o_count+1;
                     //o_valid goes high after full stream arrives, when i_last goes 1
+                end 
+                else if (i_num==0 && xcount != 0) begin 
+                    o_count<=xcount;
+                end 
+                else if (i_num !=0 && xcount !=0) begin 
+                    o_count<=xcount;
                 end 
             end
             o_valid<=i_last;
             //setting o_count to zero 
             //if output 
             if (o_valid) begin 
-                o_count<=1'b0;
+                o_count<=32'd0;
             end 
         end
     end 
