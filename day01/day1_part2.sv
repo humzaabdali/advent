@@ -1,23 +1,103 @@
-// Testbench code
 module top_module ();
-	reg clk=0;
-	always #5 clk = ~clk;  // Create clock with period=10
-	initial `probe_start;   // Start the timing diagram
+    reg clk = 0;
+    always #5 clk = ~clk;
+    initial `probe_start;
 
-	`probe(clk);        // Probe signal "clk"
+    `probe(clk);
 
-	// A testbench
-	reg in=0;
-	initial begin
-		#10 in <= 1;
-		#10 in <= 0;
-		#20 in <= 1;
-		#20 in <= 0;
-		$display ("Hello world! The current time is (%0d ps)", $time);
-		#50 $finish;            // Quit the simulation
-	end
+    // DUT inputs
+    reg        rst;
+    reg        direction;
+    reg [31:0] num;
+    reg        valid;
+    reg        last;
 
-	template inst1 ( .in(in) );   // Sub-modules work too.
+    // DUT outputs
+    wire [31:0] count;
+    wire        valid_out;
+
+    // Top-level probes
+    `probe(rst);
+    `probe(direction);
+    `probe(num);
+    `probe(valid);
+    `probe(last);
+    `probe(count);
+    `probe(valid_out);
+
+    // Instantiate DUT
+    day01_puzzle1 dut (
+        .clk(clk),
+        .rst(rst),
+        .direction(direction),
+        .num(num),
+        .valid(valid),
+        .last(last),
+        .count(count),
+        .o_valid(valid_out)   // IMPORTANT: your top should NOT name output "valid"
+    );
+
+    // ---- Boundary probes (between submodules) ----
+    // These assume day01_puzzle1 declares these nets:
+    //   wire [31:0] sum0;
+    //   wire        valid0, last0;
+    //   wire [31:0] round1;
+    //   wire        valid1, last1;
+    `probe(dut.sum0);
+    `probe(dut.valid0);
+    `probe(dut.last0);
+
+    `probe(dut.round1);
+    `probe(dut.valid1);
+    `probe(dut.last1);
+
+    // Drive one item in the stream
+    task automatic send_word(input [31:0] n, input bit is_last);
+        begin
+            @(negedge clk);
+            valid <= 1'b1;
+            num   <= n;
+            last  <= is_last;
+
+            @(negedge clk);
+            valid <= 1'b0;
+            last  <= 1'b0;
+            num   <= 32'd0;
+        end
+    endtask
+
+    initial begin
+        // Init
+        rst       = 1'b1;
+        direction = 1'b1;
+        num       = 32'd0;
+        valid     = 1'b0;
+        last      = 1'b0;
+
+        // Reset
+        repeat (2) @(negedge clk);
+        rst <= 1'b0;
+
+        // Burst 1: add
+        direction <= 1'b1;
+        send_word(32'd0,  1'b0);
+        send_word(32'd50, 1'b0);
+        send_word(32'd50, 1'b0);  // should produce wrap to 0 mod 100 at rounder output
+        send_word(32'd0,  1'b1);
+
+        repeat (3) @(negedge clk);
+
+        // Burst 2: sub
+        direction <= 1'b0;
+        send_word(32'd25, 1'b0);
+        send_word(32'd25, 1'b0);
+        send_word(32'd50, 1'b0);
+        send_word(32'd0,  1'b1);
+
+        repeat (6) @(negedge clk);
+        $display("TB done @%0t ps", $time);
+        $finish;
+    end
 
 endmodule
 
@@ -85,8 +165,8 @@ module rounder(
     input  logic               i_last,
     output logic [31:0]        o_rounded_value,
     output logic               o_valid,
-    output logic               o_last
-    output logic               o_xcount
+    output logic               o_last,
+    output logic [31:0]               o_xcount
 );
 
     always_comb begin
@@ -94,13 +174,7 @@ module rounder(
         o_rounded_value = ((i_num % 100) + 100) % 100;
         o_xcount = i_num / 100;
     end
-
-    //modular arithmetic 
-    //we are keeping track of how many times we wrap around zero, and adding it to the count
-    always@(posedge clk) begin 
-        
-    end 
-
+    
     assign o_valid = i_valid;
     assign o_last  = i_last;
 
@@ -111,10 +185,9 @@ module zero_counter(    input bit [31:0] i_num,
                         input bit rst, 
                         input bit i_valid,
                         input bit i_last,
-                        input bit i_xcount,
+                    input logic [31:0] i_xcount,
                         output bit [31:0] o_count,
-                        output bit o_valid,
-                        input bit i_xcount
+                        output bit o_valid
                         );
 
     always@(posedge clk) begin 
@@ -124,15 +197,15 @@ module zero_counter(    input bit [31:0] i_num,
         end 
         else begin 
             if (i_valid) begin 
-                if (i_num==0 && (xcount == 0)) begin  
+                if (i_num==0 && (i_xcount == 0)) begin  
                     o_count <= o_count+1;
                     //o_valid goes high after full stream arrives, when i_last goes 1
                 end 
-                else if (i_num==0 && xcount != 0) begin 
-                    o_count<=xcount;
+                else if (i_num==0 && i_xcount != 0) begin 
+                    o_count<=i_xcount;
                 end 
-                else if (i_num !=0 && xcount !=0) begin 
-                    o_count<=xcount;
+                else if (i_num !=0 && i_xcount !=0) begin 
+                    o_count<=i_xcount;
                 end 
             end
             o_valid<=i_last;
