@@ -81,7 +81,7 @@ module top_module ();
         // Burst 1: add
         direction <= 1'b1;
         send_word(32'd0,  1'b0);
-        send_word(32'd50, 1'b0);
+        send_word(32'd200, 1'b0);
         send_word(32'd50, 1'b0);  // should produce wrap to 0 mod 100 at rounder output
         send_word(32'd0,  1'b1);
 
@@ -201,10 +201,7 @@ module zero_counter(    input bit [31:0] i_num,
                     o_count <= o_count+1;
                     //o_valid goes high after full stream arrives, when i_last goes 1
                 end 
-                else if (i_num==0 && i_xcount != 0) begin 
-                    o_count<=i_xcount;
-                end 
-                else if (i_num !=0 && i_xcount !=0) begin 
+                else if (i_xcount != 0) begin 
                     o_count<=i_xcount;
                 end 
             end
