@@ -1,3 +1,84 @@
+`timescale 1ns/1ps
+
+module top_module ();
+
+    reg i_Clock = 0;
+    always #5 i_Clock = ~i_Clock;
+
+    initial `probe_start;
+
+    // DUT inputs
+    reg  [31:0] i_Binary;
+    reg         i_Start;
+
+    // DUT outputs
+    wire [39:0] o_BCD;
+    wire        o_DV;
+
+    // Top-level probes
+    `probe(i_Clock);
+    `probe(i_Binary);
+    `probe(i_Start);
+    `probe(o_BCD);
+    `probe(o_DV);
+
+    // Instantiate DUT
+    Binary_to_BCD #(
+        .INPUT_WIDTH(32),
+        .DECIMAL_DIGITS(10)
+    ) dut (
+        .i_Clock(i_Clock),
+        .i_Binary(i_Binary),
+        .i_Start(i_Start),
+        .o_BCD(o_BCD),
+        .o_DV(o_DV)
+    );
+
+    // Internal DUT probes
+    `probe(dut.r_SM_Main);
+    `probe(dut.r_BCD);
+    `probe(dut.r_Binary);
+    `probe(dut.r_Digit_Index);
+    `probe(dut.r_Loop_Count);
+    `probe(dut.w_BCD_Digit);
+    `probe(dut.r_DV);
+
+    task automatic send_value(input [31:0] val);
+        begin
+            @(negedge i_Clock);
+            i_Binary <= val;
+            i_Start  <= 1'b1;
+
+            @(negedge i_Clock);
+            i_Start  <= 1'b0;
+
+            wait (o_DV == 1'b1);
+            @(posedge i_Clock);
+
+            $display("time=%0t  i_Binary=%0d  o_BCDdigit1=%h o_BCFDdigit2=%h  o_DV=%b",
+                     $time, val, o_BCD[7:4], o_BCD[3:0], o_DV);
+        end
+    endtask
+
+    initial begin
+        i_Binary = 32'd0;
+        i_Start  = 1'b0;
+
+        send_value(32'd0);
+        send_value(32'd7);
+        send_value(32'd42);
+        send_value(32'd99);
+        send_value(32'd123);
+        send_value(32'd999);
+        send_value(32'd12345);
+        send_value(32'd987654321);
+
+        repeat (5) @(negedge i_Clock);
+        $finish;
+    end
+
+endmodule
+
 module Binary_to_BCD
   #(parameter INPUT_WIDTH,
     parameter DECIMAL_DIGITS)
