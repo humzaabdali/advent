@@ -213,3 +213,25 @@ module Binary_to_BCD
   assign o_DV  = r_DV;
       
 endmodule // Binary_to_BCD
+
+module leading_zero(
+    input  [39:0] bcd_vector,
+    output reg [9:0] valid,
+);
+
+    integer i;
+
+    always @(*) begin
+        valid = 10'b0;
+        for (i = 0; i < 10; i = i + 1) begin
+            if (bcd_vector[i*4 +: 4] != 4'b0000)
+                valid[i] = 1'b1;
+            else
+                valid[i] = 1'b0;
+        end
+    end
+
+    `probe(bcd_vector);
+    `probe(valid);
+
+endmodule
