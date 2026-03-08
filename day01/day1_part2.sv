@@ -81,7 +81,7 @@ module top_module ();
         // Burst 1: add
         direction <= 1'b1;
         send_word(32'd0,  1'b0);
-        send_word(32'd200, 1'b0);
+        send_word(32'd150, 1'b0);
         send_word(32'd50, 1'b0);  // should produce wrap to 0 mod 100 at rounder output
         send_word(32'd0,  1'b1);
 
@@ -90,8 +90,10 @@ module top_module ();
         // Burst 2: sub
         direction <= 1'b0;
         send_word(32'd25, 1'b0);
-        send_word(32'd25, 1'b0);
-        send_word(32'd50, 1'b0);
+        //25
+        send_word(32'd150, 1'b0);
+        //75 with 2 wrap arounds
+        send_word(32'd0, 1'b0);
         send_word(32'd0,  1'b1);
 
         repeat (6) @(negedge clk);
@@ -105,6 +107,7 @@ endmodule
 module day01_puzzle1(   input bit clk, 
                         input bit rst,
                         input bit direction, 
+                     	
                         input bit [31:0] num,
                         input bit valid,
                         input bit last,
@@ -115,11 +118,11 @@ module day01_puzzle1(   input bit clk,
 	
 	// Member variables for module
 
-    wire valid0, last0, valid1, last1;
-    wire [31:0] sum0, round1, xcount, i_xcount;
+    wire valid0, last0, valid1, last1, direction0;
+    wire [31:0] sum0, round1, xcount, i_xcount, rotation0;
 
-    ALU ALU1(.clk(clk), .rst(rst), .i_direction(direction), .i_num(num), .i_valid(valid), .i_last(last), .o_sum(sum0), .o_valid(valid0), .o_last(last0));
-    rounder Rounder1(.i_num(sum0), .i_valid(valid0), .i_last(last0), .o_rounded_value(round1), .o_valid(valid1), .o_last(last1), .o_xcount(xcount));
+    ALU ALU1(.clk(clk), .rst(rst), .i_direction(direction), .i_num(num), .i_valid(valid), .i_last(last), .o_sum(sum0), .o_valid(valid0), .o_last(last0), .o_direction(direction0), .o_rotation(rotation0));
+    rounder Rounder1(.i_num(sum0), .i_valid(valid0), .i_last(last0), .o_rounded_value(round1), .o_valid(valid1), .o_last(last1), .o_xcount(xcount), .i_direction(direction0), .i_rotation(rotation0));
     zero_counter ZeroCounter1(.clk(clk), .rst(rst), .i_num(round1), .i_valid(valid1), .i_last(last1), .o_count(count), .o_valid(o_valid), .i_xcount(xcount));
 
 endmodule
@@ -131,8 +134,10 @@ module ALU( input bit clk,
             input bit i_valid,
             input bit i_last,
             output bit [31:0] o_sum,
+           output bit [31:0] o_rotation,
             output bit o_valid,
-            output bit o_last 
+            output bit o_last, 
+           	output bit o_direction
             );
 	
 	// Member variables for module
@@ -151,29 +156,50 @@ module ALU( input bit clk,
             end
             o_valid <= i_valid;
             o_last <= i_last;
+            o_direction<=i_direction;
+            o_rotation<=i_num;
             if(o_last)
                 accum <= 32'd50;
         end
     end
 
     assign o_sum = accum;
+    
 endmodule
 
 module rounder(
     input  logic signed [31:0] i_num,
+    input bit [31:0] i_rotation,
     input  logic               i_valid,
     input  logic               i_last,
+    input bit                   i_direction,
     output logic [31:0]        o_rounded_value,
     output logic               o_valid,
     output logic               o_last,
-    output logic [31:0]               o_xcount
+    output logic [31:0]        o_xcount
 );
 
+    wire rounded_rotation = ((i_rotation % 100) + 100) % 100;
     always_comb begin
+        
         // wrap to range [0,99]
         o_rounded_value = ((i_num % 100) + 100) % 100;
-        o_xcount = i_num / 100;
-    end
+        
+        o_xcount = ((i_num / 100) <0) ?  -(i_num / 100) : (i_num/100);
+        
+        //handle rotation less than 100 but wraps around...
+        //if final value less than rotation, then we wrapped around...
+        if (i_direction) begin 
+            if (i_num < rounded_rotation) begin
+            	o_xcount=o_xcount+1;
+        	end 
+        end 
+        else begin 
+            if((32'd100-i_num) > rounded_rotation) begin 
+              o_xcount=o_xcount+1;
+        	end 
+    	end
+    end 
     
     assign o_valid = i_valid;
     assign o_last  = i_last;
