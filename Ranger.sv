@@ -1,3 +1,7 @@
+//Ranger module 
+//Take in input of range 
+//start and end of range, input valid/start signal to indicate we the starting of our ranger 
+//4 states, waiting state to handle if fifo is full, 
 module top_module();
 
     // ── Clock ──────────────────────────────────────────────────────────
