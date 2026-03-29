@@ -4,7 +4,8 @@ module Binary_to_BCD
   (
    input                         i_Clock,
    input [INPUT_WIDTH-1:0]       i_Binary,
-   input                         i_Start,
+   output                        rd_enable,
+   input                         FIFO_empty,
    output [DECIMAL_DIGITS*4-1:0] o_BCD,
    output                        o_DV
    );
@@ -15,6 +16,7 @@ module Binary_to_BCD
   parameter s_ADD               = 3'b011;
   parameter s_CHECK_DIGIT_INDEX = 3'b100;
   parameter s_BCD_DONE          = 3'b101;
+  parameter s_WAIT              = 3'b110;
 
   reg [2:0] r_SM_Main = s_IDLE;
   reg [DECIMAL_DIGITS*4-1:0] r_BCD = 0;
@@ -27,14 +29,25 @@ module Binary_to_BCD
   always @(posedge i_Clock) begin
     case (r_SM_Main)
 
-      s_IDLE : begin
-        r_DV <= 1'b0;
-        if (i_Start == 1'b1) begin
-          r_Binary  <= i_Binary;
-          r_SM_Main <= s_SHIFT;
-          r_BCD     <= 0;
-        end
-      end
+     // s_IDLE : begin
+       // r_DV <= 1'b0;
+        //if (FIFO_empty == 1'b0) begin
+         // r_Binary  <= i_Binary;
+          //r_SM_Main <= s_SHIFT;
+         // r_BCD     <= 0;
+     //   end
+    //  end
+    s_IDLE : begin
+      r_DV <= 1'b0;
+      if (FIFO_empty == 1'b0)
+        r_SM_Main <= s_WAIT;  // assert rd_enable this cycle, wait for data
+    end
+
+    s_WAIT: begin 
+      r_Binary <= i_Binary;
+      r_BCD <=0;
+      r_SM_Main<=s_SHIFT;
+    end 
 
       s_SHIFT : begin
         r_BCD     <= r_BCD << 1;
@@ -83,5 +96,6 @@ module Binary_to_BCD
   assign w_BCD_Digit = r_BCD[r_Digit_Index*4 +: 4];
   assign o_BCD = r_BCD;
   assign o_DV  = r_DV;
+  assign rd_enable = (r_SM_Main==s_IDLE) && (FIFO_empty==0);
 
 endmodule
