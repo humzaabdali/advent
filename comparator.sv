@@ -4,7 +4,9 @@ module comparator(
     input        i_valid,
     output reg   is_invalid_id,
     output reg   o_valid,
-    output reg [39:0]   o_bcd_vector
+    output reg [39:0]   o_bcd_vector,
+    input [31:0] i_binary,
+    output reg [31:0] p_binary
 );
 
     always @(*) begin
@@ -19,6 +21,7 @@ module comparator(
 
         o_valid = i_valid;
         o_bcd_vector = i_bcd_vector;
+        assign p_binary = i_binary;
     end
 
     endmodule

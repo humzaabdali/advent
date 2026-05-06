@@ -7,7 +7,8 @@ module Binary_to_BCD
    output                        rd_enable,
    input                         FIFO_empty,
    output [DECIMAL_DIGITS*4-1:0] o_BCD,
-   output                        o_DV
+   output                        o_DV,
+   output [INPUT_WIDTH-1:0]      o_Binary
    );
 
   parameter s_IDLE              = 3'b000;
@@ -25,6 +26,7 @@ module Binary_to_BCD
   reg [7:0]                  r_Loop_Count = 0;
   wire [3:0]                 w_BCD_Digit;
   reg                        r_DV = 1'b0;
+  reg[INPUT_WIDTH-1:0]       pass_Binary =0;
 
   always @(posedge i_Clock) begin
     case (r_SM_Main)
@@ -47,6 +49,7 @@ module Binary_to_BCD
       r_Binary <= i_Binary;
       r_BCD <=0;
       r_SM_Main<=s_SHIFT;
+      pass_Binary<=i_Binary;
     end 
 
       s_SHIFT : begin
@@ -97,5 +100,6 @@ module Binary_to_BCD
   assign o_BCD = r_BCD;
   assign o_DV  = r_DV;
   assign rd_enable = (r_SM_Main==s_IDLE) && (FIFO_empty==0);
+  assign o_Binary = pass_Binary;
 
 endmodule

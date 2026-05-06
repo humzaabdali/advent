@@ -2,7 +2,9 @@ module leading_zero(
     input  [39:0] bcd_vector,
     input         i_valid,
     output reg [3:0] leading_zeros,
-    output reg    o_valid
+    output reg    o_valid,
+    input [31:0] i_binary,
+    output reg [31:0] p_binary
 );
 
     integer i;
@@ -22,6 +24,7 @@ module leading_zero(
         end
 
         o_valid = i_valid;
+        p_binary = i_binary;
     end
 
 endmodule
