@@ -205,13 +205,21 @@ module Ranger(input[31:0] i_start_range, input[31:0] i_end_range,
                 o_valid<=0;
             end 
             stepping: begin
-                o_num<=current;
-                o_valid<=1'b1;
-                current<=current+1;
+                if (~i_fifo_full) begin 
+                    o_num<=current;
+                    o_valid<=1'b1;
+                    current<=current+1;
+                end 
+                else begin 
+                    o_valid<=1'b0;
+                end 
             end 
             waiting: begin 
                 o_valid<=0;
             end 
+            default: begin
+                nstate_reg = idle;
+        end
         endcase 
     end 
 endmodule
