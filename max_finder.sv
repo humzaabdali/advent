@@ -5,6 +5,7 @@ module max_finder(
     input clk,
     input i_valid,
     output o_valid,
+    output o_ready,
     input reset
 );
 

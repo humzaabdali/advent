@@ -10,7 +10,8 @@ module Binary_to_BCD
    input                         i_Start,
    //
    output [DECIMAL_DIGITS*4-1:0] o_BCD,
-   output                        o_DV
+   output                        o_DV,
+   input reset
    );
    
   parameter s_IDLE              = 3'b000;
@@ -56,8 +57,7 @@ module Binary_to_BCD
               end
             else
               r_SM_Main <= s_IDLE;
-          end
-                 
+          end                 
   
         // Always shift the BCD Vector until we have shifted all bits through
         // Shift the most significant bit of r_Binary into r_BCD lowest bit.
@@ -67,8 +67,7 @@ module Binary_to_BCD
             r_BCD[0]  <= r_Binary[INPUT_WIDTH-1];
             r_Binary  <= r_Binary << 1;
             r_SM_Main <= s_CHECK_SHIFT_INDEX;
-          end          
-         
+          end                   
   
         // Check if we are done with shifting in r_Binary vector
         s_CHECK_SHIFT_INDEX :
@@ -98,7 +97,6 @@ module Binary_to_BCD
             r_SM_Main <= s_CHECK_DIGIT_INDEX; 
           end       
          
-         
         // Check if we are done incrementing all of the BCD Digits
         s_CHECK_DIGIT_INDEX :
           begin
@@ -114,21 +112,18 @@ module Binary_to_BCD
               end
           end
   
-  
         s_BCD_DONE :
           begin
             r_DV      <= 1'b1;
             r_SM_Main <= s_IDLE;
           end
-         
-         
+                  
         default :
           r_SM_Main <= s_IDLE;
             
       endcase
     end // always @ (posedge i_Clock)  
  
-   
   assign w_BCD_Digit = r_BCD[r_Digit_Index*4 +: 4];
        
   assign o_BCD = r_BCD;
