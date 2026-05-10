@@ -144,9 +144,9 @@ module max_finder (
         best_pair   = 8'd0;
 
         for (i = 1; i <= 9; i = i + 1) begin
-            if ({i_BCD_vector[i*4 +: 4], running_max} > best_pair)
+            if ({i_BCD_vector[i*4 +: 4], running_max} >= best_pair)
                 best_pair = {i_BCD_vector[i*4 +: 4], running_max};
-            if (i_BCD_vector[i*4 +: 4] > running_max)
+            if (i_BCD_vector[i*4 +: 4] >= running_max)
                 running_max = i_BCD_vector[i*4 +: 4];
         end
 
