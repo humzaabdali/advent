@@ -2,7 +2,8 @@ module BCD_accum(
 input [7:0] i_max_vector,
 input i_valid,
 output reg [31:0] o_accumulated_sum,
-input clk
+input clk,
+input rst
 );
 
     always @(posedge clk) begin
