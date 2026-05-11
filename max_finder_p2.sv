@@ -1,4 +1,7 @@
 
+//module top_module() 
+//endmodule
+
 module max_finder 
 #(PARAMETER decimal_digits)(
     //12 digits 
@@ -9,8 +12,15 @@ module max_finder
     input rst,
     input            i_valid,
     output reg [47:0] o_max_vector,
+
     //max_vector always 48 BCD bits long 48/12 =4
-    output reg       o_valid
+
+    output reg       o_valid,
+    input [3:0] i_state_max,
+    input [$clog2(decimal_digits)-1:0] i_state_index,
+    output [3:0] o_state_right_index,
+    output [3:0] o_state_left_index,
+    output [decimal_digits*4-1:0] o_state_BCD_vector
 );
 
     reg [3:0] window_size = 0;
@@ -45,12 +55,6 @@ module max_finder
                     state <= done;
             end 
             find_max: begin
-                for (integer i = left_index; i >= right_index; i--) begin 
-                    if ( i_BCD_vector[i*4 +: 4]) begin 
-                    end 
-                    else begin 
-                    end 
-                end 
             end 
             check_space: begin 
             end 
@@ -58,5 +62,36 @@ module max_finder
             end
         endcase
     end 
+
+    o_state_left_index = 
+    o_state_right_index = 
+
+endmodule
+
+
+
+module max_state
+(PARAMETER decimal_digits)(
+    input [63:0] i_BCD_vector;
+    input[4:0] i_left_index,
+    input[4:0] i_right_index,
+    output reg [$clog2(decimal_digits)-1:0] max_index,
+    output reg [3:0] max_digit
+);
+
+always@(*) begin 
+
+    reg [3:0] temp_max;
+    reg [3:0] temp_max_index;
+
+    for (integer i = i_left_index; i > i_right_index;i--) begin
+        if (i_BCD_vector[i*4 +: 4] > temp_max)
+        temp_max = i_BCD_vector[i*4+:4];
+        temp_max_index=i;
+    end 
+    max_digit=temp_max;
+    max_index = temp_max_index;
+
+end 
 
 endmodule
