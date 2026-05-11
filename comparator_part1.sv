@@ -1,0 +1,5 @@
+module comparator(
+  
+)
+  
+endmodule
